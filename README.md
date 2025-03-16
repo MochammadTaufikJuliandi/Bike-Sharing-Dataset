@@ -1,16 +1,17 @@
 # BKE SHARING Dashboard ✨
 
-## Cara Install
+## How To Install
 
-1. **Clone repository ini:**
+1. **Clone this repository:**
 	```sh
 	git clone https://github.com/MochammadTaufikJuliandi/Bike-Sharing-Dataset
 	cd Bike-Sharing-Dataset
 	```
 
-2. **Buat virtual environment (opsional tapi disarankan):**
+2. **Setup environment :**
 	```sh
-	python -m venv venv
+	python -m venv venv pip
+	pip install -r requirements
 	```
 
 3. **Aktifkan virtual environment:**
@@ -23,12 +24,8 @@
 		source venv/bin/activate
 		```
 
-4. **Instal dependensi yang diperlukan:**
-	```sh
-	pip install -r requirements.txt
-	```
 
-## Cara Menjalankan
+## Run Streamlit App
 
 1. **Jalankan aplikasi:**
 	```sh
