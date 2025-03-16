@@ -36,7 +36,8 @@
 	```
 	http://localhost:8501
 	```
-## https://bike-sharing-dataset-opik.streamlit.app/
+## Link Streamlit
+https://bike-sharing-dataset-opik.streamlit.app/
 ## Catatan
 
 Pastikan Anda memiliki Python dan pip terinstal di sistem Anda. Jika belum, Anda dapat mengunduh dan menginstalnya dari [python.org](https://www.python.org/).
