@@ -12,8 +12,8 @@ st.write("Dashboard ini menampilkan hasil analisis dataset rental sepeda.")
 @st.cache_data  # Cache data untuk meningkatkan performa
 def load_data():
     # Ganti dengan URL dataset baru
-    day_df = pd.read_csv("https://raw.githubusercontent.com/MochammadTaufikJuliandi/Bike-Sharing-Dataset/408df65b374beb8854022ccb62eef5ad16cc8a6f/dashboard/data/day_clean.csv")
-    hour_df = pd.read_csv("https://raw.githubusercontent.com/MochammadTaufikJuliandi/Bike-Sharing-Dataset/408df65b374beb8854022ccb62eef5ad16cc8a6f/dashboard/data/hour_clean.csv")
+    day_df = pd.read_csv("dashboard/data/day_clean.csv")
+    hour_df = pd.read_csv("dashboard/data/hour_clean.csv")
     
     # Rename kolom
     day_df.rename(columns={
