@@ -34,145 +34,113 @@ def load_data():
 
 day_df, hour_df = load_data()
 
-# Sidebar untuk navigasi
-st.sidebar.title("Navigasi")
-option = st.sidebar.selectbox(
-    "Pilih Analisis",
-    ["RFM Analysis", "Clustering", "Segmentasi Musim & Cuaca", "Analisis Jam Sibuk", "Segmentasi Hari Kerja & Libur", "Segmentasi Musim", "Segmentasi Cuaca"]
+# Sidebar untuk filtering
+st.sidebar.title("Filter Data")
+min_date = pd.to_datetime(hour_df['Date']).min()
+max_date = pd.to_datetime(hour_df['Date']).max()
+start_date = st.sidebar.date_input("Tanggal Mulai", min_date)
+end_date = st.sidebar.date_input("Tanggal Akhir", max_date)
+
+# Filter tambahan
+selected_season = st.sidebar.selectbox("Pilih Musim", ["Semua"] + list(hour_df['Season'].unique()))
+selected_weather = st.sidebar.selectbox("Pilih Cuaca", ["Semua"] + list(hour_df['Weather Situation'].unique()))
+selected_workingday = st.sidebar.selectbox("Pilih Hari Kerja/Libur", ["Semua", "Hari Kerja", "Hari Libur"])
+
+# Terapkan filtering
+filtered_hour_df = hour_df[
+    (pd.to_datetime(hour_df['Date']) >= pd.to_datetime(start_date)) &
+    (pd.to_datetime(hour_df['Date']) <= pd.to_datetime(end_date))
+]
+
+if selected_season != "Semua":
+    filtered_hour_df = filtered_hour_df[filtered_hour_df['Season'] == selected_season]
+
+if selected_weather != "Semua":
+    filtered_hour_df = filtered_hour_df[filtered_hour_df['Weather Situation'] == selected_weather]
+
+if selected_workingday != "Semua":
+    if selected_workingday == "Hari Kerja":
+        filtered_hour_df = filtered_hour_df[filtered_hour_df['Working Day'] == 1]
+    else:
+        filtered_hour_df = filtered_hour_df[filtered_hour_df['Working Day'] == 0]
+
+# Tampilkan data yang difilter
+st.subheader("Data yang Difilter")
+st.write(filtered_hour_df.head())
+
+# Visualisasi Interaktif
+st.header("Visualisasi Interaktif")
+
+# Pilih jenis visualisasi
+visualization_option = st.selectbox(
+    "Pilih Jenis Visualisasi",
+    ["Distribusi Penyewaan per Jam", "Rata-Rata Penyewaan per Musim", "Rata-Rata Penyewaan per Cuaca"]
 )
 
-# Tampilkan analisis berdasarkan pilihan
-if option == "RFM Analysis":
-    st.header("RFM Analysis")
+if visualization_option == "Distribusi Penyewaan per Jam":
+    st.subheader("Distribusi Penyewaan per Jam")
     
-    # Hitung Recency, Frequency, dan Monetary
-    hour_df['Date'] = pd.to_datetime(hour_df['Date'])
-    last_date = hour_df['Date'].max()
-    hour_df['Recency'] = (last_date - hour_df['Date']).dt.days
+    # Slider untuk memilih rentang jam
+    hour_range = st.slider("Pilih Rentang Jam", 0, 23, (8, 17))
     
-    frequency_df = hour_df.groupby('Date')['Total Count'].count().reset_index()
-    frequency_df.columns = ['Date', 'Frequency']
-    
-    monetary_df = hour_df.groupby('Date')['Total Count'].sum().reset_index()
-    monetary_df.columns = ['Date', 'Monetary']
-    
-    rfm_df = pd.merge(frequency_df, monetary_df, on='Date')
-    rfm_df = pd.merge(rfm_df, hour_df[['Date', 'Recency']], on='Date')
-    
-    st.write("Data RFM:")
-    st.dataframe(rfm_df.head())
-    
-    # Visualisasi RFM
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.scatterplot(x='Recency', y='Frequency', size='Monetary', data=rfm_df, sizes=(20, 200), ax=ax)
-    ax.set_title('RFM Analysis: Recency vs Frequency (Ukuran: Monetary)')
-    ax.set_xlabel('Recency (Hari)')
-    ax.set_ylabel('Frequency')
-    st.pyplot(fig)
-
-elif option == "Clustering":
-    st.header("Clustering (Manual Grouping)")
-    
-    # Buat kategori berdasarkan jumlah penyewaan
-    hour_df['Rental Category'] = pd.cut(hour_df['Total Count'],
-                                        bins=[0, 50, 150, float('inf')],
-                                        labels=['Low', 'Medium', 'High'])
-    
-    st.write("Data dengan Kategori Penyewaan:")
-    st.dataframe(hour_df[['Total Count', 'Rental Category']].head())
-    
-    # Visualisasi kategori penyewaan
-    fig, ax = plt.subplots(figsize=(8, 5))
-    sns.countplot(x='Rental Category', data=hour_df, order=['Low', 'Medium', 'High'], ax=ax)
-    ax.set_title('Distribusi Kategori Penyewaan')
-    ax.set_xlabel('Kategori Penyewaan')
-    ax.set_ylabel('Jumlah')
-    st.pyplot(fig)
-
-elif option == "Segmentasi Musim & Cuaca":
-    st.header("Segmentasi Berdasarkan Musim dan Cuaca")
-    
-    # Segmentasi berdasarkan musim dan cuaca
-    segment_df = hour_df.groupby(['Season', 'Weather Situation'])['Total Count'].mean().reset_index()
-    st.write("Rata-Rata Penyewaan Berdasarkan Musim dan Cuaca:")
-    st.dataframe(segment_df)
-    
-    # Visualisasi segmentasi musim dan cuaca
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.barplot(x='Season', y='Total Count', hue='Weather Situation', data=segment_df, ax=ax)
-    ax.set_title('Rata-Rata Penyewaan Berdasarkan Musim dan Cuaca')
-    ax.set_xlabel('Musim')
-    ax.set_ylabel('Rata-Rata Jumlah Penyewaan')
-    ax.set_xticks([0, 1, 2, 3])
-    ax.set_xticklabels(['Fall', 'Spring', 'Summer', 'Winter'])
-    ax.legend(title='Cuaca')
-    st.pyplot(fig)
-
-elif option == "Analisis Jam Sibuk":
-    st.header("Analisis Jam Sibuk")
+    # Filter data berdasarkan rentang jam
+    filtered_by_hour = filtered_hour_df[
+        (filtered_hour_df['Hour'] >= hour_range[0]) & (filtered_hour_df['Hour'] <= hour_range[1])
+    ]
     
     # Hitung rata-rata penyewaan per jam
-    hour_analysis = hour_df.groupby('Hour')['Total Count'].mean().reset_index()
-    st.write("Rata-Rata Penyewaan per Jam:")
-    st.dataframe(hour_analysis)
+    hour_analysis = filtered_by_hour.groupby('Hour')['Total Count'].mean().reset_index()
     
-    # Visualisasi jam sibuk
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.lineplot(x='Hour', y='Total Count', data=hour_analysis, marker='o', ax=ax)
-    ax.set_title('Rata-Rata Penyewaan Sepeda per Jam')
-    ax.set_xlabel('Jam (0-23)')
+    # Visualisasi
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.barplot(x='Hour', y='Total Count', data=hour_analysis, ax=ax)
+    ax.set_title(f'Rata-Rata Penyewaan per Jam ({hour_range[0]}:00 - {hour_range[1]}:00)')
+    ax.set_xlabel('Jam')
     ax.set_ylabel('Rata-Rata Jumlah Penyewaan')
-    ax.grid()
     st.pyplot(fig)
 
-elif option == "Segmentasi Hari Kerja & Libur":
-    st.header("Segmentasi Berdasarkan Hari Kerja dan Hari Libur")
+elif visualization_option == "Rata-Rata Penyewaan per Musim":
+    st.subheader("Rata-Rata Penyewaan per Musim")
     
-    # Segmentasi berdasarkan hari kerja dan hari libur
-    workingday_analysis = hour_df.groupby('Working Day')['Total Count'].mean().reset_index()
-    st.write("Rata-Rata Penyewaan Berdasarkan Hari Kerja dan Hari Libur:")
-    st.dataframe(workingday_analysis)
+    # Pilih musim untuk perbandingan
+    selected_seasons = st.multiselect(
+        "Pilih Musim untuk Dibandingkan",
+        options=filtered_hour_df['Season'].unique(),
+        default=filtered_hour_df['Season'].unique()
+    )
     
-    # Visualisasi segmentasi hari kerja vs hari libur
-    fig, ax = plt.subplots(figsize=(8, 5))
-    sns.barplot(x='Working Day', y='Total Count', data=workingday_analysis, ax=ax)
-    ax.set_title('Rata-Rata Penyewaan: Hari Kerja vs Hari Libur')
-    ax.set_xlabel('Hari Kerja (1: Ya, 0: Tidak)')
-    ax.set_ylabel('Rata-Rata Jumlah Penyewaan')
-    ax.set_xticks([0, 1])
-    ax.set_xticklabels(['Hari Libur', 'Hari Kerja'])
-    st.pyplot(fig)
-
-elif option == "Segmentasi Musim":
-    st.header("Segmentasi Berdasarkan Musim")
+    # Filter data berdasarkan musim yang dipilih
+    season_analysis = filtered_hour_df[filtered_hour_df['Season'].isin(selected_seasons)]
+    season_analysis = season_analysis.groupby('Season')['Total Count'].mean().reset_index()
     
-    # Segmentasi berdasarkan musim
-    season_analysis = hour_df.groupby('Season')['Total Count'].mean().reset_index()
-    st.write("Rata-Rata Penyewaan Berdasarkan Musim:")
-    st.dataframe(season_analysis)
-    
-    # Visualisasi segmentasi musim
-    fig, ax = plt.subplots(figsize=(8, 5))
+    # Visualisasi
+    fig, ax = plt.subplots(figsize=(10, 6))
     sns.barplot(x='Season', y='Total Count', data=season_analysis, ax=ax)
-    ax.set_title('Rata-Rata Penyewaan Berdasarkan Musim')
+    ax.set_title('Rata-Rata Penyewaan per Musim')
     ax.set_xlabel('Musim')
     ax.set_ylabel('Rata-Rata Jumlah Penyewaan')
     ax.set_xticks([0, 1, 2, 3])
     ax.set_xticklabels(['Fall', 'Spring', 'Summer', 'Winter'])
     st.pyplot(fig)
 
-elif option == "Segmentasi Cuaca":
-    st.header("Segmentasi Berdasarkan Cuaca")
+elif visualization_option == "Rata-Rata Penyewaan per Cuaca":
+    st.subheader("Rata-Rata Penyewaan per Cuaca")
     
-    # Segmentasi berdasarkan cuaca
-    weather_analysis = hour_df.groupby('Weather Situation')['Total Count'].mean().reset_index()
-    st.write("Rata-Rata Penyewaan Berdasarkan Cuaca:")
-    st.dataframe(weather_analysis)
+    # Pilih cuaca untuk perbandingan
+    selected_weathers = st.multiselect(
+        "Pilih Cuaca untuk Dibandingkan",
+        options=filtered_hour_df['Weather Situation'].unique(),
+        default=filtered_hour_df['Weather Situation'].unique()
+    )
     
-    # Visualisasi segmentasi cuaca
-    fig, ax = plt.subplots(figsize=(8, 5))
+    # Filter data berdasarkan cuaca yang dipilih
+    weather_analysis = filtered_hour_df[filtered_hour_df['Weather Situation'].isin(selected_weathers)]
+    weather_analysis = weather_analysis.groupby('Weather Situation')['Total Count'].mean().reset_index()
+    
+    # Visualisasi
+    fig, ax = plt.subplots(figsize=(10, 6))
     sns.barplot(x='Weather Situation', y='Total Count', data=weather_analysis, ax=ax)
-    ax.set_title('Rata-Rata Penyewaan Berdasarkan Cuaca')
+    ax.set_title('Rata-Rata Penyewaan per Cuaca')
     ax.set_xlabel('Kondisi Cuaca')
     ax.set_ylabel('Rata-Rata Jumlah Penyewaan')
     ax.set_xticks([0, 1, 2, 3])
